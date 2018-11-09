@@ -18,9 +18,9 @@
   <extension name="db" />
  </folder>
  <file path="beacon_CSR101x.keyr" />
- <properties currentconfiguration="Release" >
+ <properties currentconfiguration="Debug" >
   <configuration name="Debug" >
-   <property key="debugtransport" ></property>
+   <property key="debugtransport" >[SPITRANS=USB SPIPORT=0]</property>
    <property key="defines" ></property>
    <property key="libs" ></property>
    <property key="output" ></property>

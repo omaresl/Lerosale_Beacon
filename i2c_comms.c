@@ -178,7 +178,7 @@ extern bool I2CReadRegister(uint8 base_address, uint8 reg,
  *      TRUE if successful
  *
  *----------------------------------------------------------------------------*/
-extern bool I2CReadRegisters(uint8 base_address, uint8 start_reg, 
+extern bool I2CReadRegisters(uint8 base_address, uint8 start_reg,
                               uint8 num_bytes, uint8 *p_buffer)
 {
     bool success = FALSE;
@@ -227,24 +227,28 @@ extern bool I2CReadRegisters(uint8 base_address, uint8 start_reg,
  *
  *----------------------------------------------------------------------------*/
 extern bool I2CWriteRegister(uint8 base_address, uint8 reg, 
-                              uint8 register_value)
+		uint8 register_value)
 {
-    bool success;
-    
-    success = ( (I2cRawStart(TRUE)               == sys_status_success) &&
-    			(I2cRawRestart(TRUE)             == sys_status_success) &&
-                (I2cRawWriteByte(base_address)   == sys_status_success) &&
-                (I2cRawWaitAck(TRUE)             == sys_status_success) &&
-                (I2cRawWriteByte(reg)            == sys_status_success) &&
-                (I2cRawWaitAck(TRUE)             == sys_status_success) &&
-                (I2cRawWriteByte(register_value) == sys_status_success) &&
-                (I2cRawWaitAck(TRUE)             == sys_status_success) &&
-                (I2cRawStop(TRUE)                == sys_status_success));
+	bool success;
 
-    I2cRawComplete(1 * MILLISECOND);
-    I2cRawTerminate();
-    
-    return success;
+	success = ( (I2cRawStart(TRUE)           == sys_status_success) &&
+			(I2cRawRestart(TRUE)             == sys_status_success) &&
+			(I2cRawWriteByte(base_address)   == sys_status_success) &&
+			(I2cRawWaitAck(TRUE)             == sys_status_success) &&
+			(I2cRawWriteByte(0x00u)          == sys_status_success) &&
+			(I2cRawWaitAck(TRUE)             == sys_status_success) &&
+			(I2cRawWriteByte(reg) 			 == sys_status_success) &&
+			(I2cRawWaitAck(TRUE)             == sys_status_success) &&
+			(I2cRawWriteByte(0x00u) 		 == sys_status_success) &&
+			(I2cRawWaitAck(TRUE)             == sys_status_success) &&
+			(I2cRawWriteByte(register_value) == sys_status_success) &&
+			(I2cRawWaitAck(TRUE)             == sys_status_success) &&
+			(I2cRawStop(TRUE)                == sys_status_success));
+
+	I2cRawComplete(1 * MILLISECOND);
+	I2cRawTerminate();
+
+	return success;
 }
 
 /*-----------------------------------------------------------------------------*
@@ -260,23 +264,32 @@ extern bool I2CWriteRegister(uint8 base_address, uint8 reg,
  *
  *----------------------------------------------------------------------------*/
 extern bool I2CWriteRegisters(uint8 base_address, uint8 length,
-                              uint8* register_value_array)
+		uint8* register_value_array)
 {
-    bool success;
-    uint8 lub_i;
+	bool success;
+	uint8 lub_i;
 
-    success = ((I2cRawStart(TRUE)               == sys_status_success) &&
-				(I2cRawRestart(TRUE)             == sys_status_success));
+	success = ((I2cRawStart(TRUE)               			== sys_status_success) &&
+			(I2cRawRestart(TRUE)             				== sys_status_success) &&
+			(I2cRawWriteByte(base_address)					== sys_status_success));
 
-    for(lub_i = 0; lub_i < length; lub_i++)
-    {
-    	success = (success &&
-    			((I2cRawWriteByte(register_value_array[lub_i])   == sys_status_success) &&
-    			(I2cRawWaitAck(TRUE)             == sys_status_success)));
-    }
+	if(length == 0u)
+	{
+		I2cReset();
+	}
+	else
+	{
+		I2cRawWaitAck(TRUE);
+		for(lub_i = 0; lub_i < length; lub_i++)
+		{
+			success = (success &&
+					((I2cRawWriteByte(register_value_array[lub_i])   == sys_status_success) &&
+							(I2cRawWaitAck(TRUE)             == sys_status_success)));
+		}
+		success = (success && (I2cRawStop(TRUE) == sys_status_success));
+		I2cRawComplete(1 * MILLISECOND);
+		I2cRawTerminate();
+	}
 
-    I2cRawComplete(1 * MILLISECOND);
-    I2cRawTerminate();
-
-    return success;
+	return success;
 }
