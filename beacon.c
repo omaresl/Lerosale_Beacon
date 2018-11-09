@@ -134,8 +134,8 @@ static void timerCallback1(timer_id const id)
 	/* clear the existing advertisement data, if any */
 	LsStoreAdvScanData(0, NULL, ad_src_advertise);
 
-//	rub_Counter++;
-	advData[13] = rub_Counter; // Counter Increase
+	//	rub_Counter++;
+	advData[16] = rub_Counter; // Counter Increase
 
 	luw_BatteryLevel = BatteryReadVoltage(); // Battery Level Update
 
@@ -149,8 +149,8 @@ static void timerCallback1(timer_id const id)
 	advData[7] = 0x16;
 
 	//Battery Level
-	advData[11] = (uint8)(luw_BatteryLevel >> 8u);
-	advData[12] = (uint8)(luw_BatteryLevel);
+	advData[14] = (uint8)(luw_BatteryLevel >> 8u);
+	advData[15] = (uint8)(luw_BatteryLevel);
 
 	if(FALSE)//MSG_TYPE_PERIODIC != rub_MsgType)
 	{
@@ -202,7 +202,10 @@ static void timerCallback1(timer_id const id)
 		advData[9] = rub_Measure[MEASURE_X_AXIS];
 
 		//D1 - void
-		advData[10] = rub_Measure[MEASURE_Y_AXIS];
+		advData[10] = (uint8)(((rub_Measure[MEASURE_XY_AXISLSB] & 0xF0) << 0u) | (rub_Measure[MEASURE_Y_AXIS] >> 4u));
+		advData[11] = (uint8)(((rub_Measure[MEASURE_Y_AXIS] & 0x0F) << 4u) | (rub_Measure[MEASURE_XY_AXISLSB] & 0x0Fu));
+		advData[12] = (uint8)(((rub_Measure[MEASURE_Z_AXIS] & 0xFF) << 0u));
+		advData[13] = (uint8)(((rub_Measure[MEASURE_TZ_AXISLSB] & 0x0F) << 4u) | 0x0A);
 
 	}
 
@@ -241,39 +244,50 @@ static void timerCallback2(timer_id const id)
 	lub_LoseCounter = 0u;
 	lub_MaxMeasuredValue = 0u;
 	lub_MinMeasuredValue = 0u;
+	lub_CommRes = FALSE;
 
+	/* Release the I2C bus */
+	I2CRelease();
 	/* Acquire I2C bus */
 	if(I2CAcquire())
 	{
 		/* Initialise I2C communication. */
 		I2CcommsInit();
+		lub_CommRes = I2CWriteRegisters(0x00,0,raub_ChipData);
 
-		TimeDelayUSec(250);
-
+		I2cReset();
+		TimeDelayUSec(1000);
+		lub_CommRes = I2CReadRegisters(0x3Eu,0x00u,TLV493D_READREGISTERS_SIZE,raub_ChipData);
 		/* Start Conversion */
-		lub_CommRes = I2CWriteRegister(0x3E,0x00,0x82u);
+		lub_CommRes = I2CWriteRegister(0x3E,0x01u,0x40u);
 
-		/* The sensor takes around 250us for transition from OFF state to stand
-		 * by state.
-		 */
-		TimeDelayUSec(10000);
+		for(lub_i = 0; lub_i < 1; lub_i++)
+		{
+			TimeDelayUSec(13200);
+		}
 
-		/* Stop Conversion */
-		lub_CommRes = I2CWriteRegister(0x3E,0x00,0x00u);
+		lub_CommRes = I2CWriteRegister(0x3E,0x00u,0x00u);
 
-		lub_CommRes = I2CReadRegisters(0x3Eu,0x00u,3u,raub_ChipData);
+		lub_CommRes = I2CReadRegisters(0x3Eu,0x00u,TLV493D_READREGISTERS_SIZE,raub_ChipData);
+
+		if(TRUE == lub_CommRes)
+		{
+			if(rub_Counter < 0xFF)
+			{
+				rub_Counter++;
+			}
+			else
+			{
+				rub_Counter = 0x00u;
+			}
+		}
+		else
+		{
+
+		}
 
 		/* Release the I2C bus */
 		I2CRelease();
-	}
-
-	if(TRUE == lub_CommRes)
-	{
-		rub_Counter++;
-	}
-	else
-	{
-
 	}
 
 	rub_Measure[MEASURE_X_AXIS] = raub_ChipData[TLV493D_OFFSET_READREGISTER0];
@@ -574,7 +588,7 @@ void AppInit(sleep_state last_sleep_state)
 		/* The sensor takes around 250us for transition from OFF state to stand
 		 * by state.
 		 */
-		TimeDelayUSec(250);
+		TimeDelayUSec(250u);
 		I2CWriteRegister(0x00,0x00,0x00); //Chip REset
 
 		/* Release the I2C bus */

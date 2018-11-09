@@ -18,7 +18,7 @@
 /* First timeout at which the timer has to fire a callback */
 #define TIMER_TIMEOUT1 (1 * SECOND)
 /* Second timeout at which the timer has to fire a callback */
-#define TIMER_TIMEOUT2 (100 * MILLISECOND)
+#define TIMER_TIMEOUT2 (400 * MILLISECOND)
 
 /*============================================================================*
  *  TLV493D Parameters
@@ -33,7 +33,7 @@
 #define TLV493D_OFFSET_READREGISTER5	(5u) // BZ2
 #define TLV493D_OFFSET_READREGISTER6	(6u) // Temp2
 
-#define TLV493D_READREGISTERS_SIZE		(7u)
+#define TLV493D_READREGISTERS_SIZE		(10u)
 
 /*============================================================================*
  *  Measure Parameters
@@ -44,9 +44,13 @@
 
 #define MEASURE_LOW_LEVEL_THRESHOLD	(20u)
 
-#define MEASURE_N_AXIS	(2u) /* BX & BY */
-#define MEASURE_X_AXIS	(0u)
-#define MEASURE_Y_AXIS	(1u)
+#define MEASURE_N_AXIS		(2u) /* BX & BY */
+#define MEASURE_X_AXIS		(0u)
+#define MEASURE_Y_AXIS		(1u)
+#define MEASURE_Z_AXIS		(2u)
+
+#define MEASURE_XY_AXISLSB	(4u)
+#define MEASURE_TZ_AXISLSB	(5u)
 
 /*============================================================================*
  *  Battery Parameters
