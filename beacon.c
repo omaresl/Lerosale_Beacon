@@ -51,7 +51,7 @@ static uint16 app_timers[SIZEOF_APP_TIMER * MAX_TIMERS];
 
 static uint8 advData[MAX_ADVERT_PACKET_SIZE];
 static uint8 raub_ChipData[TLV493D_READREGISTERS_SIZE];
-static uint8 rub_Measure;
+static uint8 rub_Measure[MEASURE_N_AXIS];
 static uint8 raub_MeasureHistory[MEASURE_HISTORY_SIZE];
 static uint8 rub_MeasureHistoryIndex = 0u;
 static uint8 rub_MsgType = MSG_TYPE_PERIODIC;
@@ -134,7 +134,7 @@ static void timerCallback1(timer_id const id)
 	/* clear the existing advertisement data, if any */
 	LsStoreAdvScanData(0, NULL, ad_src_advertise);
 
-	rub_Counter++;
+//	rub_Counter++;
 	advData[13] = rub_Counter; // Counter Increase
 
 	luw_BatteryLevel = BatteryReadVoltage(); // Battery Level Update
@@ -152,7 +152,7 @@ static void timerCallback1(timer_id const id)
 	advData[11] = (uint8)(luw_BatteryLevel >> 8u);
 	advData[12] = (uint8)(luw_BatteryLevel);
 
-	if(MSG_TYPE_PERIODIC != rub_MsgType)
+	if(FALSE)//MSG_TYPE_PERIODIC != rub_MsgType)
 	{
 		if(MSG_TYPE_LOSE == rub_MsgType)
 		{
@@ -174,13 +174,10 @@ static void timerCallback1(timer_id const id)
 		{
 			//This should not be reached
 		}
-
-		//Msg Type
-		advData[8] = rub_MsgType;
 	}
 	else
 	{
-		if(rub_Measure < MEASURE_LOW_LEVEL_THRESHOLD)
+		if(rub_Measure[MEASURE_X_AXIS] < MEASURE_LOW_LEVEL_THRESHOLD)
 		{
 			rub_MsgType = MSG_TYPE_LOW_LEVEL;
 		}
@@ -202,10 +199,10 @@ static void timerCallback1(timer_id const id)
 		advData[8] = rub_MsgType;
 
 		// D0 - Level
-		advData[9] = rub_Measure;
+		advData[9] = rub_Measure[MEASURE_X_AXIS];
 
 		//D1 - void
-		advData[10] = 0x00;
+		advData[10] = rub_Measure[MEASURE_Y_AXIS];
 
 	}
 
@@ -238,6 +235,7 @@ static void timerCallback2(timer_id const id)
 	uint8 lub_i;
 	uint8 lub_GainCounter;
 	uint8 lub_LoseCounter;
+	static uint8 lub_CommRes;
 
 	lub_GainCounter = 0u;
 	lub_LoseCounter = 0u;
@@ -250,21 +248,39 @@ static void timerCallback2(timer_id const id)
 		/* Initialise I2C communication. */
 		I2CcommsInit();
 
+		TimeDelayUSec(250);
+
+		/* Start Conversion */
+		lub_CommRes = I2CWriteRegister(0x3E,0x00,0x82u);
+
 		/* The sensor takes around 250us for transition from OFF state to stand
 		 * by state.
 		 */
-		TimeDelayUSec(250);
+		TimeDelayUSec(10000);
 
-		I2CReadRegisters(0x3Eu,0x00u,3u,raub_ChipData);
+		/* Stop Conversion */
+		lub_CommRes = I2CWriteRegister(0x3E,0x00,0x00u);
+
+		lub_CommRes = I2CReadRegisters(0x3Eu,0x00u,3u,raub_ChipData);
 
 		/* Release the I2C bus */
 		I2CRelease();
 	}
 
-	rub_Measure = raub_ChipData[TLV493D_OFFSET_READREGISTER0];
+	if(TRUE == lub_CommRes)
+	{
+		rub_Counter++;
+	}
+	else
+	{
+
+	}
+
+	rub_Measure[MEASURE_X_AXIS] = raub_ChipData[TLV493D_OFFSET_READREGISTER0];
+	rub_Measure[MEASURE_Y_AXIS] = raub_ChipData[TLV493D_OFFSET_READREGISTER1];
 
 	/* Update History */
-	raub_MeasureHistory[rub_MeasureHistoryIndex] = rub_Measure;
+	raub_MeasureHistory[rub_MeasureHistoryIndex] = rub_Measure[MEASURE_X_AXIS];
 
 	//Check if history buffer has been filled
 	if(rub_MeasureHistoryIndex < MEASURE_HISTORY_SIZE)
@@ -560,9 +576,6 @@ void AppInit(sleep_state last_sleep_state)
 		 */
 		TimeDelayUSec(250);
 		I2CWriteRegister(0x00,0x00,0x00); //Chip REset
-
-		TimeDelayUSec(250);
-		I2CWriteRegister(0x3E,0x00,0x81u);
 
 		/* Release the I2C bus */
 		I2CRelease();

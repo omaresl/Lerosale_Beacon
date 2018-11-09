@@ -18,7 +18,7 @@
 /* First timeout at which the timer has to fire a callback */
 #define TIMER_TIMEOUT1 (1 * SECOND)
 /* Second timeout at which the timer has to fire a callback */
-#define TIMER_TIMEOUT2 (1 * SECOND)
+#define TIMER_TIMEOUT2 (100 * MILLISECOND)
 
 /*============================================================================*
  *  TLV493D Parameters
@@ -43,6 +43,10 @@
 #define MEASURE_GAP_THRESHOLD	(10u)
 
 #define MEASURE_LOW_LEVEL_THRESHOLD	(20u)
+
+#define MEASURE_N_AXIS	(2u) /* BX & BY */
+#define MEASURE_X_AXIS	(0u)
+#define MEASURE_Y_AXIS	(1u)
 
 /*============================================================================*
  *  Battery Parameters
